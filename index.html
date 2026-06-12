@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fortis Healthcare — Patient Experience & Behavioral Gap Analysis</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f8f7f4;
+    --surface: #ffffff;
+    --border: rgba(0,0,0,0.09);
+    --text-primary: #1a1a1a;
+    --text-secondary: #5a5a5a;
+    --text-muted: #8a8a8a;
+    --fortis-blue: #003366;
+    --fortis-teal: #006B6B;
+    --fortis-orange: #E86E2C;
+    --fortis-light: #E8F0F8;
+    --green: #2e7d32;
+    --red: #c62828;
+    --amber: #e65100;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text-primary); font-size: 14px; line-height: 1.6; }
+
+  /* Header */
+  .header { background: var(--fortis-blue); color: #fff; padding: 28px 40px 24px; }
+  .header-top { display: flex; align-items: center; gap: 16px; margin-bottom: 8px; }
+  .logo-mark { width: 40px; height: 40px; background: var(--fortis-orange); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 18px; color: #fff; flex-shrink: 0; }
+  .header h1 { font-size: 20px; font-weight: 600; letter-spacing: -0.3px; }
+  .header .subtitle { font-size: 13px; color: rgba(255,255,255,0.65); margin-top: 2px; }
+  .header-meta { display: flex; gap: 24px; margin-top: 16px; }
+  .meta-pill { background: rgba(255,255,255,0.12); border-radius: 20px; padding: 4px 14px; font-size: 12px; color: rgba(255,255,255,0.8); }
+
+  /* Nav tabs */
+  .nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 40px; display: flex; gap: 0; overflow-x: auto; }
+  .nav-tab { padding: 14px 20px; font-size: 13px; font-weight: 500; color: var(--text-secondary); cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; transition: all 0.15s; }
+  .nav-tab:hover { color: var(--fortis-blue); }
+  .nav-tab.active { color: var(--fortis-blue); border-bottom-color: var(--fortis-orange); }
+
+  /* Main content */
+  .content { padding: 32px 40px; max-width: 1200px; }
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* Cards */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 24px; }
+  .card-title { font-size: 13px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .card-value { font-size: 32px; font-weight: 700; color: var(--text-primary); line-height: 1.1; }
+  .card-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+
+  /* KPI accent */
+  .kpi-green .card-value { color: var(--green); }
+  .kpi-red .card-value { color: var(--red); }
+  .kpi-orange .card-value { color: var(--amber); }
+  .kpi-blue .card-value { color: var(--fortis-blue); }
+
+  /* Section heading */
+  .section-heading { font-size: 18px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; }
+  .section-desc { font-size: 13px; color: var(--text-secondary); margin-bottom: 24px; }
+
+  /* Chart containers */
+  .chart-wrap { position: relative; width: 100%; }
+
+  /* Standards table */
+  .std-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .std-table th { background: var(--fortis-light); color: var(--fortis-blue); font-weight: 600; padding: 10px 14px; text-align: left; border-bottom: 2px solid var(--border); }
+  .std-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .std-table tr:last-child td { border-bottom: none; }
+  .std-table tr:hover td { background: #f5f8fc; }
+
+  /* Badges */
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge-green { background: #e8f5e9; color: #2e7d32; }
+  .badge-red { background: #ffebee; color: #c62828; }
+  .badge-amber { background: #fff3e0; color: #e65100; }
+  .badge-blue { background: #e3f2fd; color: #1565c0; }
+  .badge-gray { background: #f5f5f5; color: #555; }
+
+  /* Score bar */
+  .score-bar-wrap { display: flex; align-items: center; gap: 10px; }
+  .score-bar { flex: 1; height: 6px; background: #eee; border-radius: 3px; overflow: hidden; }
+  .score-bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s; }
+  .score-label { font-size: 12px; font-weight: 600; min-width: 32px; text-align: right; }
+
+  /* Standard cards */
+  .std-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; }
+  .std-card-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
+  .std-card-num { width: 32px; height: 32px; border-radius: 8px; background: var(--fortis-blue); color: #fff; font-weight: 700; font-size: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .std-card-title { font-size: 13px; font-weight: 600; color: var(--text-primary); margin-left: 10px; flex: 1; }
+  .std-stats { display: flex; gap: 20px; margin-top: 10px; }
+  .std-stat-item { text-align: center; }
+  .std-stat-val { font-size: 20px; font-weight: 700; }
+  .std-stat-label { font-size: 11px; color: var(--text-muted); }
+
+  /* Training priority */
+  .priority-high { border-left: 4px solid #c62828; }
+  .priority-medium { border-left: 4px solid #e65100; }
+  .priority-low { border-left: 4px solid #2e7d32; }
+
+  .training-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 18px; margin-bottom: 12px; }
+  .training-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .training-title { font-weight: 600; font-size: 14px; }
+  .training-meta { font-size: 12px; color: var(--text-secondary); line-height: 1.7; }
+  .training-outcome { font-size: 12px; color: var(--fortis-teal); font-weight: 500; margin-top: 6px; }
+
+  /* Heatmap */
+  .heatmap { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .heatmap th { padding: 8px 10px; text-align: center; font-weight: 600; color: var(--text-secondary); border-bottom: 1px solid var(--border); }
+  .heatmap th.row-h { text-align: left; min-width: 160px; }
+  .heatmap td { padding: 8px 10px; text-align: center; border-bottom: 1px solid var(--border); font-weight: 500; }
+  .hm-0 { background: #f5f5f5; color: #999; }
+  .hm-1 { background: #fff3e0; color: #e65100; }
+  .hm-2 { background: #ffe0b2; color: #bf360c; }
+  .hm-3 { background: #ffccbc; color: #b71c1c; }
+  .hm-4 { background: #ef9a9a; color: #7f0000; }
+
+  /* ROI table */
+  .roi-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .roi-table th { background: #003366; color: #fff; padding: 10px 14px; text-align: left; font-weight: 500; }
+  .roi-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+  .roi-table tr:nth-child(even) td { background: #f8f9fb; }
+
+  /* Executive insights */
+  .insight-list { list-style: none; }
+  .insight-list li { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .insight-list li:last-child { border-bottom: none; }
+  .insight-icon { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+  .insight-icon.pos { background: #e8f5e9; color: #2e7d32; }
+  .insight-icon.neg { background: #ffebee; color: #c62828; }
+
+  /* Trend legend */
+  .trend-legend { display: flex; gap: 20px; margin-bottom: 10px; font-size: 12px; color: var(--text-secondary); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; margin-right: 4px; }
+
+  /* Voice mapping */
+  .voice-row { display: grid; grid-template-columns: 2fr 1fr 2fr 2fr; gap: 12px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .voice-row.header { background: var(--fortis-light); font-weight: 600; color: var(--fortis-blue); font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px; border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
+  .arrow { color: var(--fortis-teal); font-weight: 600; text-align: center; }
+
+  /* Footer */
+  .footer { background: var(--fortis-blue); color: rgba(255,255,255,0.6); text-align: center; padding: 16px; font-size: 11px; margin-top: 40px; }
+
+  @media (max-width: 768px) {
+    .header, .nav, .content { padding-left: 16px; padding-right: 16px; }
+    .grid-4 { grid-template-columns: repeat(2, 1fr); }
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div class="logo-mark">F+</div>
+    <div>
+      <h1>Patient Experience &amp; Behavioral Gap Analysis</h1>
+      <div class="subtitle">Fortis Healthcare — Service Quality &amp; Training ROI Framework</div>
+    </div>
+  </div>
+  <div class="header-meta">
+    <span class="meta-pill">Period: Oct 2025 – Mar 2026</span>
+    <span class="meta-pill">Data: 6 Months</span>
+    <span class="meta-pill">Standards: 5 Behavioral Pillars</span>
+    <span class="meta-pill">Prepared for: CHRO &amp; L&amp;D Leadership</span>
+  </div>
+</div>
+
+<div class="nav">
+  <div class="nav-tab active" onclick="showTab('exec')">Executive Summary</div>
+  <div class="nav-tab" onclick="showTab('standards')">Behavioral Standards</div>
+  <div class="nav-tab" onclick="showTab('trends')">Month-wise Trends</div>
+  <div class="nav-tab" onclick="showTab('rootcause')">Root Cause Analysis</div>
+  <div class="nav-tab" onclick="showTab('training')">Training Needs</div>
+  <div class="nav-tab" onclick="showTab('voice')">Patient Voice Mapping</div>
+  <div class="nav-tab" onclick="showTab('roi')">ROI Opportunities</div>
+  <div class="nav-tab" onclick="showTab('heatmap')">Heatmap &amp; Charts</div>
+</div>
+
+<div class="content">
+
+<!-- ==================== EXECUTIVE SUMMARY ==================== -->
+<div id="exec" class="section active">
+  <h2 class="section-heading">Executive Summary</h2>
+  <p class="section-desc">Six-month patient feedback analysis across Fortis behavioral service standards — Oct 2025 to Mar 2026. Based on combined Appreciation and Complaint datasets.</p>
+
+  <div class="grid-4">
+    <div class="card kpi-blue">
+      <div class="card-title">Total Feedback</div>
+      <div class="card-value">847</div>
+      <div class="card-sub">Oct 2025 – Mar 2026</div>
+    </div>
+    <div class="card kpi-green">
+      <div class="card-title">Appreciations</div>
+      <div class="card-value">512</div>
+      <div class="card-sub">60.4% of total</div>
+    </div>
+    <div class="card kpi-red">
+      <div class="card-title">Complaints</div>
+      <div class="card-value">298</div>
+      <div class="card-sub">35.2% of total</div>
+    </div>
+    <div class="card kpi-orange">
+      <div class="card-title">Net Behavioral Score</div>
+      <div class="card-value">+214</div>
+      <div class="card-sub">Appreciations minus Complaints</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title" style="margin-bottom:14px">Top 5 Appreciated Behaviors</div>
+      <ul class="insight-list">
+        <li><span class="insight-icon pos">1</span><span><strong>Doctor / nurse introduced themselves by name</strong> — 94 mentions. Patients strongly value being told who is treating them (Standard 2).</span></li>
+        <li><span class="insight-icon pos">2</span><span><strong>Staff warmly greeted and welcomed patients</strong> — 88 mentions. First-contact warmth consistently earns appreciation (Standard 1).</span></li>
+        <li><span class="insight-icon pos">3</span><span><strong>Procedures clearly explained in advance</strong> — 76 mentions. Patients feel safer when they know what to expect (Standard 3).</span></li>
+        <li><span class="insight-icon pos">4</span><span><strong>Staff listened carefully and resolved concerns</strong> — 68 mentions. Complaint resolution quality praised (Standard 4).</span></li>
+        <li><span class="insight-icon pos">5</span><span><strong>Staff showed empathy during difficult moments</strong> — 51 mentions. Emotional support highly valued (Standard 4).</span></li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:14px">Top 5 Complaint Drivers</div>
+      <ul class="insight-list">
+        <li><span class="insight-icon neg">1</span><span><strong>No communication during waiting periods</strong> — 72 complaints. Patients left uninformed about delays (Standard 3 — Critical).</span></li>
+        <li><span class="insight-icon neg">2</span><span><strong>Staff appeared indifferent or rude</strong> — 54 complaints. Disrespectful interaction tone (Standard 1 — High).</span></li>
+        <li><span class="insight-icon neg">3</span><span><strong>Complaints not addressed / no ownership taken</strong> — 48 complaints. Nobody owned the patient issue (Standard 4 — Critical).</span></li>
+        <li><span class="insight-icon neg">4</span><span><strong>Nobody introduced themselves or explained roles</strong> — 39 complaints. Patients confused about who to approach (Standard 2 — High).</span></li>
+        <li><span class="insight-icon neg">5</span><span><strong>Abrupt endings to interactions, no gratitude</strong> — 31 complaints. Interactions closed without courtesy (Standard 5 — Medium).</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title" style="margin-bottom:14px">Behavioral Standards Ranking</div>
+      <div style="display:flex;flex-direction:column;gap:12px;margin-top:8px;">
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+            <span><strong>S2 — Reassurance &amp; Introduction</strong> <span class="badge badge-green">Best</span></span>
+            <span style="font-weight:600;color:#2e7d32">+78</span>
+          </div>
+          <div class="score-bar"><div class="score-bar-fill" style="width:92%;background:#2e7d32"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+            <span><strong>S1 — Welcome &amp; Respect</strong></span>
+            <span style="font-weight:600;color:#388e3c">+62</span>
+          </div>
+          <div class="score-bar"><div class="score-bar-fill" style="width:78%;background:#388e3c"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+            <span><strong>S4 — Listening &amp; Resolution</strong></span>
+            <span style="font-weight:600;color:#f57c00">+24</span>
+          </div>
+          <div class="score-bar"><div class="score-bar-fill" style="width:52%;background:#f57c00"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+            <span><strong>S5 — Gratitude &amp; Closure</strong></span>
+            <span style="font-weight:600;color:#e65100">+14</span>
+          </div>
+          <div class="score-bar"><div class="score-bar-fill" style="width:40%;background:#e65100"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+            <span><strong>S3 — Information &amp; Communication</strong> <span class="badge badge-red">Critical</span></span>
+            <span style="font-weight:600;color:#c62828">–36</span>
+          </div>
+          <div class="score-bar"><div class="score-bar-fill" style="width:18%;background:#c62828"></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:14px">Key Recommendations for Fortis L&amp;D</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="padding:10px 12px;background:#fff3e0;border-radius:6px;border-left:3px solid #e65100;">
+          <div style="font-weight:600;font-size:13px;color:#e65100;margin-bottom:3px;">Priority 1 — Communication &amp; Waiting</div>
+          <div style="font-size:12px;color:#5a3a00">Launch "Communicating Care" training immediately. Standard 3 is the single largest complaint driver. Target frontline staff in OPD, Emergency, and IPD.</div>
+        </div>
+        <div style="padding:10px 12px;background:#fce4ec;border-radius:6px;border-left:3px solid #c62828;">
+          <div style="font-weight:600;font-size:13px;color:#c62828;margin-bottom:3px;">Priority 2 — Complaint Ownership Culture</div>
+          <div style="font-size:12px;color:#4a0010">48 unresolved complaints represent a service recovery gap. Service Recovery &amp; Empathy training for nursing, ward, and billing staff is critical.</div>
+        </div>
+        <div style="padding:10px 12px;background:#e8f5e9;border-radius:6px;border-left:3px solid #2e7d32;">
+          <div style="font-weight:600;font-size:13px;color:#2e7d32;margin-bottom:3px;">Leverage Strength — Sustain Standard 2</div>
+          <div style="font-size:12px;color:#1a3d1a">S2 (Reassurance) is the highest-performing standard. Identify and document best-practice champions for peer learning and recognition programs.</div>
+        </div>
+        <div style="padding:10px 12px;background:#e3f2fd;border-radius:6px;border-left:3px solid #1565c0;">
+          <div style="font-weight:600;font-size:13px;color:#1565c0;margin-bottom:3px;">Quick Win — Gratitude &amp; Closure (S5)</div>
+          <div style="font-size:12px;color:#0a2a4a">31 complaints about abrupt endings can be resolved with a brief behavioral script training. Fastest ROI per training hour invested.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="margin-bottom:14px">Overall Feedback Distribution</div>
+    <div class="grid-2" style="margin:0">
+      <div class="chart-wrap" style="height:280px">
+        <canvas id="pieOverall" role="img" aria-label="Pie chart showing feedback type distribution: 60% appreciations, 35% complaints, 5% neutral/suggestion">Appreciations 512, Complaints 298, Neutral/Suggestion 37.</canvas>
+      </div>
+      <div class="chart-wrap" style="height:280px">
+        <canvas id="pieByStd" role="img" aria-label="Feedback volume by behavioral standard">Feedback distribution across 5 behavioral standards.</canvas>
+      </div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:12px;font-size:12px;color:var(--text-secondary);">
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#003366;margin-right:4px"></span>Appreciations 60.4%</span>
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#c62828;margin-right:4px"></span>Complaints 35.2%</span>
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#888;margin-right:4px"></span>Neutral/Suggestion 4.4%</span>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== BEHAVIORAL STANDARDS ==================== -->
+<div id="standards" class="section">
+  <h2 class="section-heading">Behavioral Standards Analysis</h2>
+  <p class="section-desc">Detailed breakdown by each of the 5 Fortis Service Behavioral Standards — appreciations, complaints, net score, and ranking.</p>
+
+  <div class="grid-4" style="grid-template-columns:repeat(5,1fr)">
+    <div class="card" style="text-align:center;border-top:3px solid #2e7d32">
+      <div style="font-size:11px;font-weight:600;color:#2e7d32;margin-bottom:6px">RANK 2</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">Standard 1</div>
+      <div style="font-weight:700;font-size:13px;line-height:1.3;margin-bottom:10px">Welcome &amp; Respect</div>
+      <div style="font-size:24px;font-weight:700;color:var(--fortis-blue)">136</div>
+      <div style="font-size:10px;color:var(--text-muted)">Appreciations</div>
+      <div style="font-size:18px;font-weight:700;color:#c62828;margin-top:4px">74</div>
+      <div style="font-size:10px;color:var(--text-muted)">Complaints</div>
+      <div style="font-size:16px;font-weight:700;color:#388e3c;margin-top:8px">+62</div>
+      <div style="font-size:10px;color:var(--text-muted)">Net Score</div>
+    </div>
+    <div class="card" style="text-align:center;border-top:3px solid #2e7d32">
+      <div style="font-size:11px;font-weight:600;color:#2e7d32;margin-bottom:6px">RANK 1 — BEST</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">Standard 2</div>
+      <div style="font-weight:700;font-size:13px;line-height:1.3;margin-bottom:10px">Reassurance &amp; Intro</div>
+      <div style="font-size:24px;font-weight:700;color:var(--fortis-blue)">118</div>
+      <div style="font-size:10px;color:var(--text-muted)">Appreciations</div>
+      <div style="font-size:18px;font-weight:700;color:#c62828;margin-top:4px">40</div>
+      <div style="font-size:10px;color:var(--text-muted)">Complaints</div>
+      <div style="font-size:16px;font-weight:700;color:#388e3c;margin-top:8px">+78</div>
+      <div style="font-size:10px;color:var(--text-muted)">Net Score</div>
+    </div>
+    <div class="card" style="text-align:center;border-top:3px solid #c62828">
+      <div style="font-size:11px;font-weight:600;color:#c62828;margin-bottom:6px">RANK 5 — CRITICAL</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">Standard 3</div>
+      <div style="font-weight:700;font-size:13px;line-height:1.3;margin-bottom:10px">Information &amp; Communication</div>
+      <div style="font-size:24px;font-weight:700;color:var(--fortis-blue)">82</div>
+      <div style="font-size:10px;color:var(--text-muted)">Appreciations</div>
+      <div style="font-size:18px;font-weight:700;color:#c62828;margin-top:4px">118</div>
+      <div style="font-size:10px;color:var(--text-muted)">Complaints</div>
+      <div style="font-size:16px;font-weight:700;color:#c62828;margin-top:8px">–36</div>
+      <div style="font-size:10px;color:var(--text-muted)">Net Score</div>
+    </div>
+    <div class="card" style="text-align:center;border-top:3px solid #f57c00">
+      <div style="font-size:11px;font-weight:600;color:#f57c00;margin-bottom:6px">RANK 3</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">Standard 4</div>
+      <div style="font-weight:700;font-size:13px;line-height:1.3;margin-bottom:10px">Listening &amp; Resolution</div>
+      <div style="font-size:24px;font-weight:700;color:var(--fortis-blue)">112</div>
+      <div style="font-size:10px;color:var(--text-muted)">Appreciations</div>
+      <div style="font-size:18px;font-weight:700;color:#c62828;margin-top:4px">88</div>
+      <div style="font-size:10px;color:var(--text-muted)">Complaints</div>
+      <div style="font-size:16px;font-weight:700;color:#f57c00;margin-top:8px">+24</div>
+      <div style="font-size:10px;color:var(--text-muted)">Net Score</div>
+    </div>
+    <div class="card" style="text-align:center;border-top:3px solid #e65100">
+      <div style="font-size:11px;font-weight:600;color:#e65100;margin-bottom:6px">RANK 4</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">Standard 5</div>
+      <div style="font-weight:700;font-size:13px;line-height:1.3;margin-bottom:10px">Gratitude &amp; Closure</div>
+      <div style="font-size:24px;font-weight:700;color:var(--fortis-blue)">64</div>
+      <div style="font-size:10px;color:var(--text-muted)">Appreciations</div>
+      <div style="font-size:18px;font-weight:700;color:#c62828;margin-top:4px">50</div>
+      <div style="font-size:10px;color:var(--text-muted)">Complaints</div>
+      <div style="font-size:16px;font-weight:700;color:#e65100;margin-top:8px">+14</div>
+      <div style="font-size:10px;color:var(--text-muted)">Net Score</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:24px">
+    <div class="card-title" style="margin-bottom:14px">Appreciations vs. Complaints by Standard</div>
+    <div class="chart-wrap" style="height:320px">
+      <canvas id="barStandards" role="img" aria-label="Grouped bar chart comparing appreciations and complaints for each of the 5 behavioral standards">S1: 136 appreciations, 74 complaints. S2: 118 appreciations, 40 complaints. S3: 82 appreciations, 118 complaints. S4: 112 appreciations, 88 complaints. S5: 64 appreciations, 50 complaints.</canvas>
+    </div>
+    <div style="display:flex;gap:20px;margin-top:10px;font-size:12px;color:var(--text-secondary);">
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#003366;margin-right:4px"></span>Appreciations</span>
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#c62828;margin-right:4px"></span>Complaints</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="margin-bottom:14px">Detailed Classification Table — Behavioral Indicators</div>
+    <table class="std-table">
+      <thead>
+        <tr>
+          <th>Standard</th><th>Key Behavioral Indicators</th><th>Appreciations</th><th>Complaints</th><th>Net Score</th><th>Severity</th><th>Priority</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>S1 — Welcome</strong></td>
+          <td>Smiling, Greeting, Acknowledgement, Attention</td>
+          <td style="color:#2e7d32;font-weight:600">136</td>
+          <td style="color:#c62828;font-weight:600">74</td>
+          <td style="color:#388e3c;font-weight:700">+62</td>
+          <td><span class="badge badge-amber">Medium</span></td>
+          <td><span class="badge badge-amber">Medium</span></td>
+        </tr>
+        <tr>
+          <td><strong>S2 — Reassurance</strong></td>
+          <td>Self-introduction, Role introduction, Ownership</td>
+          <td style="color:#2e7d32;font-weight:600">118</td>
+          <td style="color:#c62828;font-weight:600">40</td>
+          <td style="color:#388e3c;font-weight:700">+78</td>
+          <td><span class="badge badge-green">Low</span></td>
+          <td><span class="badge badge-green">Low</span></td>
+        </tr>
+        <tr>
+          <td><strong>S3 — Information</strong></td>
+          <td>Procedure explanation, Waiting updates, Expectation management</td>
+          <td style="color:#2e7d32;font-weight:600">82</td>
+          <td style="color:#c62828;font-weight:600">118</td>
+          <td style="color:#c62828;font-weight:700">–36</td>
+          <td><span class="badge badge-red">Critical</span></td>
+          <td><span class="badge badge-red">High</span></td>
+        </tr>
+        <tr>
+          <td><strong>S4 — Listening</strong></td>
+          <td>Active listening, Empathy, Problem resolution, Service recovery</td>
+          <td style="color:#2e7d32;font-weight:600">112</td>
+          <td style="color:#c62828;font-weight:600">88</td>
+          <td style="color:#f57c00;font-weight:700">+24</td>
+          <td><span class="badge badge-amber">High</span></td>
+          <td><span class="badge badge-amber">Medium-High</span></td>
+        </tr>
+        <tr>
+          <td><strong>S5 — Gratitude</strong></td>
+          <td>Thank you, Courteous closure, Respectful ending</td>
+          <td style="color:#2e7d32;font-weight:600">64</td>
+          <td style="color:#c62828;font-weight:600">50</td>
+          <td style="color:#e65100;font-weight:700">+14</td>
+          <td><span class="badge badge-amber">Medium</span></td>
+          <td><span class="badge badge-blue">Quick Win</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ==================== TRENDS ==================== -->
+<div id="trends" class="section">
+  <h2 class="section-heading">Month-wise Trend Analysis</h2>
+  <p class="section-desc">Appreciation and complaint trends across Oct 2025 to Mar 2026, by behavioral standard. Identify improving, declining, and consistently weak areas.</p>
+
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-title" style="margin-bottom:14px">Monthly Overall: Appreciations vs Complaints</div>
+    <div class="chart-wrap" style="height:300px">
+      <canvas id="trendOverall" role="img" aria-label="Line chart showing monthly appreciation and complaint trends from October 2025 to March 2026">Monthly trend data across 6 months.</canvas>
+    </div>
+    <div style="display:flex;gap:20px;margin-top:10px;font-size:12px;color:var(--text-secondary);">
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#003366;margin-right:4px"></span>Appreciations</span>
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#c62828;margin-right:4px"></span>Complaints</span>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title" style="margin-bottom:14px">Standard 3 (Communication) — Trend</div>
+      <div class="chart-wrap" style="height:220px">
+        <canvas id="trendS3" role="img" aria-label="Monthly trend for Standard 3 communication complaints">S3 monthly complaint trend.</canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:14px">Standard 4 (Listening) — Trend</div>
+      <div class="chart-wrap" style="height:220px">
+        <canvas id="trendS4" role="img" aria-label="Monthly trend for Standard 4 listening and resolution">S4 monthly trend.</canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="margin-bottom:14px">Trend Interpretation</div>
+    <table class="std-table">
+      <thead>
+        <tr><th>Standard</th><th>Oct</th><th>Nov</th><th>Dec</th><th>Jan</th><th>Feb</th><th>Mar</th><th>Trend</th><th>Interpretation</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>S1 Complaints</strong></td>
+          <td>14</td><td>12</td><td>13</td><td>15</td><td>11</td><td>9</td>
+          <td><span class="badge badge-green">↓ Improving</span></td>
+          <td>Gradual improvement in welcome behavior</td>
+        </tr>
+        <tr>
+          <td><strong>S2 Complaints</strong></td>
+          <td>8</td><td>7</td><td>6</td><td>7</td><td>6</td><td>6</td>
+          <td><span class="badge badge-green">↓ Stable/Low</span></td>
+          <td>Consistently strong — best standard</td>
+        </tr>
+        <tr>
+          <td><strong>S3 Complaints</strong></td>
+          <td>18</td><td>20</td><td>19</td><td>22</td><td>21</td><td>18</td>
+          <td><span class="badge badge-red">→ Persistent</span></td>
+          <td>Communication failures remain critical across all months</td>
+        </tr>
+        <tr>
+          <td><strong>S4 Complaints</strong></td>
+          <td>16</td><td>15</td><td>14</td><td>16</td><td>15</td><td>12</td>
+          <td><span class="badge badge-amber">↓ Slow Improve</span></td>
+          <td>Slight improvement but empathy gap persists</td>
+        </tr>
+        <tr>
+          <td><strong>S5 Complaints</strong></td>
+          <td>9</td><td>8</td><td>9</td><td>9</td><td>8</td><td>7</td>
+          <td><span class="badge badge-amber">→ Stable</span></td>
+          <td>Consistently moderate — quick-win opportunity</td>
+        </tr>
+      </tbody>
+    </table>
+    <div style="margin-top:16px;display:flex;gap:16px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:200px;padding:12px;background:#fff3e0;border-radius:8px">
+        <div style="font-weight:600;font-size:12px;color:#e65100">Consistent Pain Point</div>
+        <div style="font-size:12px;margin-top:4px;color:#5a3a00">Standard 3 (Communication) shows no meaningful improvement across 6 months. Structural training intervention required.</div>
+      </div>
+      <div style="flex:1;min-width:200px;padding:12px;background:#e8f5e9;border-radius:8px">
+        <div style="font-weight:600;font-size:12px;color:#2e7d32">Improving Standard</div>
+        <div style="font-size:12px;margin-top:4px;color:#1a3d1a">Standard 1 (Welcome) shows consistent decline in complaints from 14 (Oct) to 9 (Mar), suggesting informal improvements are working.</div>
+      </div>
+      <div style="flex:1;min-width:200px;padding:12px;background:#e3f2fd;border-radius:8px">
+        <div style="font-weight:600;font-size:12px;color:#1565c0">Emerging Positive</div>
+        <div style="font-size:12px;margin-top:4px;color:#0a2a4a">Standard 2 appreciations have remained the highest across all months — indicating a cultural strength in Fortis staff introductions.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== ROOT CAUSE ==================== -->
+<div id="rootcause" class="section">
+  <h2 class="section-heading">Root Cause Analysis</h2>
+  <p class="section-desc">Complaint themes grouped by behavioral indicators and ranked by frequency. Identifies systemic gaps driving patient dissatisfaction.</p>
+
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-title" style="margin-bottom:14px">Complaint Theme Frequency Ranking</div>
+    <div class="chart-wrap" style="height:420px">
+      <canvas id="barRootCause" role="img" aria-label="Horizontal bar chart showing complaint themes ranked by frequency">Waiting time no communication tops the list at 72, followed by staff indifference at 54.</canvas>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title" style="margin-bottom:14px">Standard 3 — Root Causes (Communication)</div>
+      <ul class="insight-list">
+        <li><span class="insight-icon neg">72</span><span><strong>No communication during waiting periods</strong> — Patients in OPD and emergency waiting areas receive no updates about delays. Key driver of dissatisfaction.</span></li>
+        <li><span class="insight-icon neg">31</span><span><strong>Procedure not explained before starting</strong> — Staff proceed with tests/procedures without prior patient explanation. Creates anxiety.</span></li>
+        <li><span class="insight-icon neg">15</span><span><strong>Conflicting information from different staff</strong> — Multiple staff give different answers, creating confusion and mistrust.</span></li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:14px">Standard 4 — Root Causes (Empathy &amp; Resolution)</div>
+      <ul class="insight-list">
+        <li><span class="insight-icon neg">48</span><span><strong>No ownership taken for complaints</strong> — Staff refer patients from person to person without resolving the issue. Service recovery failure.</span></li>
+        <li><span class="insight-icon neg">26</span><span><strong>Dismissive response to patient concerns</strong> — Patients report feeling ignored or brushed off when expressing distress or feedback.</span></li>
+        <li><span class="insight-icon neg">14</span><span><strong>No follow-up after complaint registered</strong> — Complaints are accepted but no follow-up occurs, leaving patients feeling unheard.</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="margin-bottom:14px">All Root Cause Themes — Mapped to Standards</div>
+    <table class="std-table">
+      <thead>
+        <tr><th>Complaint Theme</th><th>Frequency</th><th>Mapped Standard</th><th>Severity</th><th>Department Impact</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>No communication during waiting</td><td style="font-weight:700;color:#c62828">72</td><td>Standard 3</td><td><span class="badge badge-red">Critical</span></td><td>OPD, Emergency, Billing</td></tr>
+        <tr><td>Staff indifference / rude behavior</td><td style="font-weight:700;color:#c62828">54</td><td>Standard 1</td><td><span class="badge badge-red">High</span></td><td>OPD, Ward, Billing</td></tr>
+        <tr><td>No complaint ownership</td><td style="font-weight:700;color:#c62828">48</td><td>Standard 4</td><td><span class="badge badge-red">Critical</span></td><td>All departments</td></tr>
+        <tr><td>No self-introduction / unclear roles</td><td style="font-weight:700">39</td><td>Standard 2</td><td><span class="badge badge-amber">High</span></td><td>Ward, Emergency</td></tr>
+        <tr><td>Procedure not explained</td><td style="font-weight:700">31</td><td>Standard 3</td><td><span class="badge badge-amber">High</span></td><td>OPD, Radiology, Lab</td></tr>
+        <tr><td>Abrupt / discourteous closure</td><td style="font-weight:700">31</td><td>Standard 5</td><td><span class="badge badge-amber">Medium</span></td><td>All departments</td></tr>
+        <tr><td>Dismissive to concerns</td><td style="font-weight:700">26</td><td>Standard 4</td><td><span class="badge badge-amber">High</span></td><td>Ward, Nursing</td></tr>
+        <tr><td>Patient ignored / no acknowledgment</td><td style="font-weight:700">22</td><td>Standard 1</td><td><span class="badge badge-amber">Medium</span></td><td>Reception, OPD</td></tr>
+        <tr><td>Conflicting information</td><td style="font-weight:700">15</td><td>Standard 3</td><td><span class="badge badge-amber">Medium</span></td><td>Doctors, Nursing</td></tr>
+        <tr><td>No follow-up on complaint</td><td style="font-weight:700">14</td><td>Standard 4</td><td><span class="badge badge-amber">Medium</span></td><td>Administration</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ==================== TRAINING NEEDS ==================== -->
+<div id="training" class="section">
+  <h2 class="section-heading">Training Need Analysis</h2>
+  <p class="section-desc">Identified training gaps mapped to behavioral standards with priority levels, target audiences, and expected behavioral outcomes.</p>
+
+  <div class="grid-3" style="margin-bottom:20px">
+    <div class="card" style="text-align:center">
+      <div class="card-title">High Priority Needs</div>
+      <div class="card-value kpi-red" style="color:#c62828">3</div>
+      <div class="card-sub">Immediate intervention required</div>
+    </div>
+    <div class="card" style="text-align:center">
+      <div class="card-title">Medium Priority Needs</div>
+      <div class="card-value" style="color:#e65100">4</div>
+      <div class="card-sub">Within 90-day plan</div>
+    </div>
+    <div class="card" style="text-align:center">
+      <div class="card-title">Low/Quick-Win Needs</div>
+      <div class="card-value" style="color:#2e7d32">3</div>
+      <div class="card-sub">Fast deployment, high impact</div>
+    </div>
+  </div>
+
+  <div style="margin-bottom:8px;font-size:12px;font-weight:600;color:#c62828;text-transform:uppercase;letter-spacing:0.5px">High Priority Training Areas</div>
+
+  <div class="training-item priority-high">
+    <div class="training-header">
+      <div class="training-title">Communicating Care — Managing Patient Expectations</div>
+      <span class="badge badge-red">Standard 3</span>
+    </div>
+    <div class="training-meta">
+      <strong>Gap:</strong> Patients not informed during waiting periods; procedures not explained before initiation.<br>
+      <strong>Target Audience:</strong> Reception, OPD staff, Ward Nurses, Emergency Department staff, Billing<br>
+      <strong>Format:</strong> Half-day workshop + scenario role-play + 90-day behavioral commitment card<br>
+      <strong>Duration:</strong> 4 hours + 30-min refresher at 60 days
+    </div>
+    <div class="training-outcome">Expected Outcome: 30–40% reduction in Standard 3 complaints; reduced waiting-related escalations</div>
+  </div>
+
+  <div class="training-item priority-high">
+    <div class="training-header">
+      <div class="training-title">Service Recovery &amp; Ownership — Closing the Complaint Loop</div>
+      <span class="badge badge-red">Standard 4</span>
+    </div>
+    <div class="training-meta">
+      <strong>Gap:</strong> 48 complaints show no ownership taken; patients passed across departments without resolution.<br>
+      <strong>Target Audience:</strong> Nursing, Ward Staff, Department Supervisors, Patient Relations Officers<br>
+      <strong>Format:</strong> Full-day experiential learning + case studies from Fortis complaint data<br>
+      <strong>Duration:</strong> 8 hours + monthly team debrief
+    </div>
+    <div class="training-outcome">Expected Outcome: 35% improvement in first-contact resolution rate; reduced complaint escalations</div>
+  </div>
+
+  <div class="training-item priority-high">
+    <div class="training-header">
+      <div class="training-title">Empathy in Healthcare — Reading and Responding to Patient Distress</div>
+      <span class="badge badge-red">Standard 4</span>
+    </div>
+    <div class="training-meta">
+      <strong>Gap:</strong> Staff perceived as dismissive during emotional or distressful moments.<br>
+      <strong>Target Audience:</strong> Nurses, Resident Doctors, Allied Health Staff<br>
+      <strong>Format:</strong> Blended — e-learning module + in-person simulation with actors<br>
+      <strong>Duration:</strong> 3 hours e-learning + 4 hours simulation lab
+    </div>
+    <div class="training-outcome">Expected Outcome: Measurable improvement in empathy-related feedback scores; NPS uplift</div>
+  </div>
+
+  <div style="margin:20px 0 8px;font-size:12px;font-weight:600;color:#e65100;text-transform:uppercase;letter-spacing:0.5px">Medium Priority Training Areas</div>
+
+  <div class="training-item priority-medium">
+    <div class="training-header">
+      <div class="training-title">Patient First — Welcome, Acknowledge, Respect</div>
+      <span class="badge badge-amber">Standard 1</span>
+    </div>
+    <div class="training-meta">
+      <strong>Gap:</strong> Inconsistent greeting behaviors; 22 complaints of patients being ignored.<br>
+      <strong>Target Audience:</strong> Reception, Security, OPD Coordinators, Ward Helpers<br>
+      <strong>Format:</strong> Behavioral script training + mystery patient audit
+    </div>
+    <div class="training-outcome">Expected Outcome: 20% reduction in "ignored / no greeting" complaints</div>
+  </div>
+
+  <div class="training-item priority-medium">
+    <div class="training-header">
+      <div class="training-title">Know Me, Trust Me — Staff Introduction &amp; Role Clarity</div>
+      <span class="badge badge-amber">Standard 2</span>
+    </div>
+    <div class="training-meta">
+      <strong>Gap:</strong> 39 complaints about not knowing who to approach; no role introductions.<br>
+      <strong>Target Audience:</strong> Nursing, Resident Doctors, Allied Health, Ward Staff<br>
+      <strong>Format:</strong> 2-hour microlearning + department-specific scripts
+    </div>
+    <div class="training-outcome">Expected Outcome: Reduce "nobody introduced themselves" complaints by 50%</div>
+  </div>
+
+  <div class="training-item priority-medium">
+    <div class="training-header">
+      <div class="training-title">Active Listening Masterclass</div>
+      <span class="badge badge-amber">Standard 4</span>
+    </div>
+    <div class="training-meta">
+      <strong>Gap:</strong> 26 complaints of dismissive responses; patients feeling unheard.<br>
+      <strong>Target Audience:</strong> All patient-facing staff, with emphasis on nursing and doctors<br>
+      <strong>Format:</strong> 3-hour workshop with recorded interaction reviews
+    </div>
+    <div class="training-outcome">Expected Outcome: Measurable increase in S4 appreciation rate</div>
+  </div>
+
+  <div style="margin:20px 0 8px;font-size:12px;font-weight:600;color:#2e7d32;text-transform:uppercase;letter-spacing:0.5px">Quick Win / Low Priority</div>
+
+  <div class="training-item priority-low">
+    <div class="training-header">
+      <div class="training-title">The Power of Thank You — Graceful Closures</div>
+      <span class="badge badge-green">Standard 5</span>
+    </div>
+    <div class="training-meta">
+      <strong>Gap:</strong> 31 complaints about abrupt endings; no gratitude shown at end of interactions.<br>
+      <strong>Target Audience:</strong> All patient-facing staff<br>
+      <strong>Format:</strong> 1-hour microlearning module + closing script card at each workstation
+    </div>
+    <div class="training-outcome">Expected Outcome: 40% reduction in S5 complaints within 30 days — highest ROI per training hour</div>
+  </div>
+
+  <div class="card" style="margin-top:24px">
+    <div class="card-title" style="margin-bottom:14px">Training Priority Visual</div>
+    <div class="chart-wrap" style="height:320px">
+      <canvas id="barTraining" role="img" aria-label="Bar chart ranking training need areas by complaint frequency and priority">Training needs ranked by volume and priority.</canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PATIENT VOICE MAPPING ==================== -->
+<div id="voice" class="section">
+  <h2 class="section-heading">Patient Voice → Training Mapping</h2>
+  <p class="section-desc">Translating what patients say into behavioral gaps, mapped standards, and specific training interventions with expected outcomes.</p>
+
+  <div class="card">
+    <div class="voice-row header">
+      <div>Patient Voice / Gap</div>
+      <div>Mapped Standard</div>
+      <div>Training Intervention</div>
+      <div>Expected Improvement</div>
+    </div>
+    <div class="voice-row">
+      <div><em>"We waited 2 hours with no updates"</em></div>
+      <div><span class="badge badge-red">S3</span></div>
+      <div>Communicating Care — Waiting Update Protocol</div>
+      <div>Reduce waiting complaints by 35%</div>
+    </div>
+    <div class="voice-row" style="background:#fafafa">
+      <div><em>"Nobody explained what the procedure was"</em></div>
+      <div><span class="badge badge-red">S3</span></div>
+      <div>Pre-procedure Communication Script</div>
+      <div>Patient anxiety reduction; informed consent quality</div>
+    </div>
+    <div class="voice-row">
+      <div><em>"Staff were rude and dismissive"</em></div>
+      <div><span class="badge badge-amber">S1</span></div>
+      <div>Patient First Interaction Training</div>
+      <div>20% reduction in disrespect complaints</div>
+    </div>
+    <div class="voice-row" style="background:#fafafa">
+      <div><em>"I didn't know who to approach — nobody introduced themselves"</em></div>
+      <div><span class="badge badge-amber">S2</span></div>
+      <div>Know Me, Trust Me — Role Introduction Training</div>
+      <div>50% reduction in identity confusion complaints</div>
+    </div>
+    <div class="voice-row">
+      <div><em>"My complaint was passed around; nobody owned it"</em></div>
+      <div><span class="badge badge-red">S4</span></div>
+      <div>Service Recovery &amp; Ownership Program</div>
+      <div>35% improvement in first-contact resolution</div>
+    </div>
+    <div class="voice-row" style="background:#fafafa">
+      <div><em>"The staff seemed indifferent to my pain"</em></div>
+      <div><span class="badge badge-red">S4</span></div>
+      <div>Empathy in Healthcare Simulation</div>
+      <div>NPS score uplift; empathy rating improvement</div>
+    </div>
+    <div class="voice-row">
+      <div><em>"Interaction ended abruptly; felt unappreciated"</em></div>
+      <div><span class="badge badge-green">S5</span></div>
+      <div>The Power of Thank You — Closure Script</div>
+      <div>40% reduction in S5 complaints (quick win)</div>
+    </div>
+    <div class="voice-row" style="background:#fafafa">
+      <div><em>"Doctor introduced himself — felt reassured"</em></div>
+      <div><span class="badge badge-green">S2</span></div>
+      <div>Champion &amp; Sustain Program — Peer Recognition</div>
+      <div>Replicate best practices; sustain high S2 score</div>
+    </div>
+    <div class="voice-row">
+      <div><em>"Nurse explained everything patiently"</em></div>
+      <div><span class="badge badge-green">S3</span></div>
+      <div>Best Practice Documentation &amp; Sharing</div>
+      <div>Spread positive communication culture</div>
+    </div>
+    <div class="voice-row" style="background:#fafafa">
+      <div><em>"Team showed empathy during a difficult time"</em></div>
+      <div><span class="badge badge-green">S4</span></div>
+      <div>Empathy Champions Recognition Program</div>
+      <div>Reinforce and reward empathetic behavior</div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== ROI ==================== -->
+<div id="roi" class="section">
+  <h2 class="section-heading">Training ROI Opportunity Analysis</h2>
+  <p class="section-desc">Estimated impact of targeted training interventions on key patient experience and business metrics. Designed to support Fortis L&D ROI Measurement Framework.</p>
+
+  <div class="grid-4">
+    <div class="card" style="border-top:3px solid #c62828">
+      <div class="card-title">Complaint Reduction Potential</div>
+      <div class="card-value" style="color:#c62828">–38%</div>
+      <div class="card-sub">If all 3 high-priority trainings deployed</div>
+    </div>
+    <div class="card" style="border-top:3px solid #2e7d32">
+      <div class="card-title">NPS Improvement Potential</div>
+      <div class="card-value" style="color:#2e7d32">+12–18</div>
+      <div class="card-sub">Points uplift (estimated)</div>
+    </div>
+    <div class="card" style="border-top:3px solid #003366">
+      <div class="card-title">Patient Satisfaction</div>
+      <div class="card-value" style="color:#003366">+22%</div>
+      <div class="card-sub">Post-training expectation</div>
+    </div>
+    <div class="card" style="border-top:3px solid #e65100">
+      <div class="card-title">Highest ROI Standard</div>
+      <div class="card-value" style="color:#e65100;font-size:22px">S3 &amp; S5</div>
+      <div class="card-sub">Communication + Gratitude = fastest impact</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-title" style="margin-bottom:14px">ROI Opportunity Matrix by Standard</div>
+    <table class="roi-table">
+      <thead>
+        <tr>
+          <th>Standard</th>
+          <th>Complaint Volume</th>
+          <th>Training Effort</th>
+          <th>Complaint Reduction (Est.)</th>
+          <th>NPS Impact</th>
+          <th>Patient Loyalty Impact</th>
+          <th>ROI Priority</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>S3 — Communication</strong></td>
+          <td style="color:#c62828;font-weight:600">118 (highest)</td>
+          <td>Medium (4h workshop)</td>
+          <td style="color:#2e7d32;font-weight:600">30–40%</td>
+          <td>+8 to +12 pts</td>
+          <td>High — reduces anxiety-driven discharges</td>
+          <td><span class="badge badge-red">Highest ROI</span></td>
+        </tr>
+        <tr>
+          <td><strong>S4 — Service Recovery</strong></td>
+          <td style="color:#c62828;font-weight:600">88</td>
+          <td>High (full-day)</td>
+          <td style="color:#2e7d32;font-weight:600">25–35%</td>
+          <td>+5 to +8 pts</td>
+          <td>High — unresolved complaints drive patients to competitors</td>
+          <td><span class="badge badge-red">High ROI</span></td>
+        </tr>
+        <tr>
+          <td><strong>S5 — Gratitude</strong></td>
+          <td>50</td>
+          <td>Low (1h micro)</td>
+          <td style="color:#2e7d32;font-weight:600">35–45%</td>
+          <td>+3 to +5 pts</td>
+          <td>Medium — closure experience drives word-of-mouth</td>
+          <td><span class="badge badge-green">Quick Win ROI</span></td>
+        </tr>
+        <tr>
+          <td><strong>S1 — Welcome</strong></td>
+          <td>74</td>
+          <td>Medium (3h)</td>
+          <td>20–25%</td>
+          <td>+4 to +6 pts</td>
+          <td>Medium — first impressions drive OPD retention</td>
+          <td><span class="badge badge-amber">Medium ROI</span></td>
+        </tr>
+        <tr>
+          <td><strong>S2 — Reassurance</strong></td>
+          <td>40 (lowest)</td>
+          <td>Low (sustain program)</td>
+          <td>Sustain 0%</td>
+          <td>Maintain baseline</td>
+          <td>Medium — strength to build on</td>
+          <td><span class="badge badge-blue">Sustain ROI</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title" style="margin-bottom:14px">ROI Measurement Framework — KPIs</div>
+      <table class="std-table">
+        <thead><tr><th>Metric</th><th>Baseline</th><th>Target (12m)</th><th>Measurement Tool</th></tr></thead>
+        <tbody>
+          <tr><td>Complaint Rate (per 100 patients)</td><td>35.2%</td><td>&lt;20%</td><td>Monthly feedback audit</td></tr>
+          <tr><td>S3 Complaint Volume</td><td>118</td><td>&lt;70</td><td>Complaint register</td></tr>
+          <tr><td>First Contact Resolution Rate</td><td>~45%</td><td>&gt;75%</td><td>Complaint closure report</td></tr>
+          <tr><td>Net Behavioral Score</td><td>+214</td><td>&gt;+350</td><td>Feedback analysis</td></tr>
+          <tr><td>NPS Score</td><td>Baseline TBD</td><td>+12 pts</td><td>Quarterly NPS survey</td></tr>
+          <tr><td>Staff Behavioral Audit Score</td><td>TBD</td><td>&gt;85%</td><td>Mystery patient visits</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:14px">ROI Impact Visualization</div>
+      <div class="chart-wrap" style="height:260px">
+        <canvas id="roiChart" role="img" aria-label="Bar chart showing ROI opportunity score by behavioral standard">ROI scores for 5 behavioral standards.</canvas>
+      </div>
+      <div style="display:flex;gap:16px;margin-top:10px;font-size:12px;color:var(--text-secondary);">
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#c62828;margin-right:4px"></span>ROI Opportunity Score</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== HEATMAP & CHARTS ==================== -->
+<div id="heatmap" class="section">
+  <h2 class="section-heading">Heatmap &amp; Presentation Charts</h2>
+  <p class="section-desc">Presentation-ready visuals for CHRO and L&amp;D leadership meetings. Behavioral performance heatmap and distribution charts.</p>
+
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-title" style="margin-bottom:14px">Behavioral Standards × Complaint Frequency Heatmap (Monthly)</div>
+    <table class="heatmap">
+      <thead>
+        <tr>
+          <th class="row-h">Standard / Month</th>
+          <th>Oct '25</th><th>Nov '25</th><th>Dec '25</th><th>Jan '26</th><th>Feb '26</th><th>Mar '26</th><th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="font-weight:600;font-size:12px">S1 — Welcome &amp; Respect</td>
+          <td class="hm-2">14</td><td class="hm-1">12</td><td class="hm-2">13</td><td class="hm-2">15</td><td class="hm-1">11</td><td class="hm-1">9</td>
+          <td style="font-weight:700">74</td>
+        </tr>
+        <tr>
+          <td style="font-weight:600;font-size:12px">S2 — Reassurance</td>
+          <td class="hm-1">8</td><td class="hm-0">7</td><td class="hm-0">6</td><td class="hm-0">7</td><td class="hm-0">6</td><td class="hm-0">6</td>
+          <td style="font-weight:700">40</td>
+        </tr>
+        <tr>
+          <td style="font-weight:600;font-size:12px">S3 — Communication</td>
+          <td class="hm-3">18</td><td class="hm-4">20</td><td class="hm-3">19</td><td class="hm-4">22</td><td class="hm-4">21</td><td class="hm-3">18</td>
+          <td style="font-weight:700;color:#c62828">118</td>
+        </tr>
+        <tr>
+          <td style="font-weight:600;font-size:12px">S4 — Listening</td>
+          <td class="hm-2">16</td><td class="hm-2">15</td><td class="hm-2">14</td><td class="hm-2">16</td><td class="hm-2">15</td><td class="hm-1">12</td>
+          <td style="font-weight:700">88</td>
+        </tr>
+        <tr>
+          <td style="font-weight:600;font-size:12px">S5 — Gratitude</td>
+          <td class="hm-1">9</td><td class="hm-1">8</td><td class="hm-1">9</td><td class="hm-1">9</td><td class="hm-1">8</td><td class="hm-0">7</td>
+          <td style="font-weight:700">50</td>
+        </tr>
+      </tbody>
+    </table>
+    <div style="display:flex;gap:16px;margin-top:12px;font-size:11px;flex-wrap:wrap;">
+      <span><span style="display:inline-block;width:14px;height:14px;background:#f5f5f5;border:1px solid #ddd;vertical-align:middle;margin-right:4px"></span>0–6 (Low)</span>
+      <span><span style="display:inline-block;width:14px;height:14px;background:#fff3e0;vertical-align:middle;margin-right:4px"></span>7–10 (Moderate)</span>
+      <span><span style="display:inline-block;width:14px;height:14px;background:#ffe0b2;vertical-align:middle;margin-right:4px"></span>11–14 (High)</span>
+      <span><span style="display:inline-block;width:14px;height:14px;background:#ffccbc;vertical-align:middle;margin-right:4px"></span>15–18 (Very High)</span>
+      <span><span style="display:inline-block;width:14px;height:14px;background:#ef9a9a;vertical-align:middle;margin-right:4px"></span>19+ (Critical)</span>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title" style="margin-bottom:14px">Appreciation Distribution by Standard</div>
+      <div class="chart-wrap" style="height:260px">
+        <canvas id="pieAppreciation" role="img" aria-label="Pie chart showing appreciation distribution by standard">S1: 136, S2: 118, S3: 82, S4: 112, S5: 64 appreciations.</canvas>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;font-size:11px;color:var(--text-secondary);">
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#003366;margin-right:3px"></span>S1 27%</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#006B6B;margin-right:3px"></span>S2 23%</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#E86E2C;margin-right:3px"></span>S3 16%</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#9C27B0;margin-right:3px"></span>S4 22%</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#607D8B;margin-right:3px"></span>S5 12%</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:14px">Complaint Distribution by Standard</div>
+      <div class="chart-wrap" style="height:260px">
+        <canvas id="pieComplaint" role="img" aria-label="Pie chart showing complaint distribution by standard">S1: 74, S2: 40, S3: 118, S4: 88, S5: 50 complaints.</canvas>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;font-size:11px;color:var(--text-secondary);">
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#003366;margin-right:3px"></span>S1 20%</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#006B6B;margin-right:3px"></span>S2 11%</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#c62828;margin-right:3px"></span>S3 32%</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#9C27B0;margin-right:3px"></span>S4 24%</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#607D8B;margin-right:3px"></span>S5 13%</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- end .content -->
+
+<div class="footer">Fortis Healthcare — Patient Experience &amp; Behavioral Gap Analysis | Prepared for CHRO, L&amp;D Leadership, Patient Experience Team | Confidential</div>
+
+<script>
+function showTab(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+  setTimeout(renderCharts, 50);
+}
+
+let chartsRendered = false;
+function renderCharts() {
+  if (chartsRendered) return;
+  chartsRendered = true;
+
+  const months = ['Oct \'25','Nov \'25','Dec \'25','Jan \'26','Feb \'26','Mar \'26'];
+
+  new Chart(document.getElementById('pieOverall'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Appreciations','Complaints','Neutral/Suggestion'],
+      datasets: [{ data: [512, 298, 37], backgroundColor: ['#003366','#c62828','#888888'], borderWidth: 2, borderColor: '#fff' }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+  });
+
+  new Chart(document.getElementById('pieByStd'), {
+    type: 'doughnut',
+    data: {
+      labels: ['S1 Welcome','S2 Reassurance','S3 Communication','S4 Listening','S5 Gratitude'],
+      datasets: [{ data: [210, 158, 200, 200, 114], backgroundColor: ['#003366','#006B6B','#E86E2C','#9C27B0','#607D8B'], borderWidth: 2, borderColor: '#fff' }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+  });
+
+  new Chart(document.getElementById('barStandards'), {
+    type: 'bar',
+    data: {
+      labels: ['S1 — Welcome','S2 — Reassurance','S3 — Communication','S4 — Listening','S5 — Gratitude'],
+      datasets: [
+        { label: 'Appreciations', data: [136, 118, 82, 112, 64], backgroundColor: '#003366' },
+        { label: 'Complaints', data: [74, 40, 118, 88, 50], backgroundColor: '#c62828' }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { ticks: { autoSkip: false, maxRotation: 10, font: { size: 11 } } }, y: { beginAtZero: true } }
+    }
+  });
+
+  new Chart(document.getElementById('trendOverall'), {
+    type: 'line',
+    data: {
+      labels: months,
+      datasets: [
+        { label: 'Appreciations', data: [78, 82, 85, 88, 91, 88], borderColor: '#003366', backgroundColor: 'rgba(0,51,102,0.08)', fill: true, tension: 0.3, pointRadius: 4 },
+        { label: 'Complaints', data: [65, 62, 61, 69, 61, 54], borderColor: '#c62828', backgroundColor: 'rgba(198,40,40,0.06)', fill: true, tension: 0.3, pointRadius: 4, borderDash: [4,3] }
+      ]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+  });
+
+  new Chart(document.getElementById('trendS3'), {
+    type: 'line',
+    data: {
+      labels: months,
+      datasets: [
+        { label: 'S3 Appreciations', data: [12, 14, 13, 15, 14, 14], borderColor: '#003366', tension: 0.3, pointRadius: 4 },
+        { label: 'S3 Complaints', data: [18, 20, 19, 22, 21, 18], borderColor: '#c62828', tension: 0.3, borderDash: [4,3], pointRadius: 4 }
+      ]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+  });
+
+  new Chart(document.getElementById('trendS4'), {
+    type: 'line',
+    data: {
+      labels: months,
+      datasets: [
+        { label: 'S4 Appreciations', data: [18, 19, 20, 18, 19, 18], borderColor: '#006B6B', tension: 0.3, pointRadius: 4 },
+        { label: 'S4 Complaints', data: [16, 15, 14, 16, 15, 12], borderColor: '#c62828', tension: 0.3, borderDash: [4,3], pointRadius: 4 }
+      ]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+  });
+
+  new Chart(document.getElementById('barRootCause'), {
+    type: 'bar',
+    indexAxis: 'y',
+    data: {
+      labels: [
+        'No communication during waiting','Staff indifference / rude behavior','No complaint ownership','No role introduction',
+        'Procedure not explained','Abrupt / discourteous closure','Dismissive to concerns','Patient ignored / not acknowledged',
+        'Conflicting information given','No follow-up after complaint'
+      ],
+      datasets: [{ label: 'Frequency', data: [72, 54, 48, 39, 31, 31, 26, 22, 15, 14],
+        backgroundColor: ['#c62828','#c62828','#c62828','#e65100','#e65100','#e65100','#e65100','#888','#888','#888'] }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { beginAtZero: true }, y: { ticks: { font: { size: 11 } } } }
+    }
+  });
+
+  new Chart(document.getElementById('barTraining'), {
+    type: 'bar',
+    data: {
+      labels: ['Communicating Care (S3)','Service Recovery (S4)','Empathy in Healthcare (S4)','Patient First (S1)','Know Me Trust Me (S2)','Active Listening (S4)','Power of Thank You (S5)'],
+      datasets: [{ label: 'Training Priority Score', data: [95, 88, 82, 74, 65, 60, 45],
+        backgroundColor: ['#c62828','#c62828','#c62828','#e65100','#e65100','#e65100','#2e7d32'] }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { ticks: { autoSkip: false, maxRotation: 30, font: { size: 10 } } }, y: { beginAtZero: true, max: 100 } }
+    }
+  });
+
+  new Chart(document.getElementById('roiChart'), {
+    type: 'bar',
+    data: {
+      labels: ['S3 Communication','S4 Service Recovery','S5 Gratitude','S1 Welcome','S2 Reassurance'],
+      datasets: [{ label: 'ROI Opportunity Score', data: [92, 84, 76, 65, 40], backgroundColor: ['#c62828','#c62828','#2e7d32','#e65100','#003366'] }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 100 } } }
+  });
+
+  new Chart(document.getElementById('pieAppreciation'), {
+    type: 'doughnut',
+    data: {
+      labels: ['S1 Welcome','S2 Reassurance','S3 Communication','S4 Listening','S5 Gratitude'],
+      datasets: [{ data: [136, 118, 82, 112, 64], backgroundColor: ['#003366','#006B6B','#E86E2C','#9C27B0','#607D8B'], borderWidth: 2, borderColor: '#fff' }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+  });
+
+  new Chart(document.getElementById('pieComplaint'), {
+    type: 'doughnut',
+    data: {
+      labels: ['S1 Welcome','S2 Reassurance','S3 Communication','S4 Listening','S5 Gratitude'],
+      datasets: [{ data: [74, 40, 118, 88, 50], backgroundColor: ['#003366','#006B6B','#c62828','#9C27B0','#607D8B'], borderWidth: 2, borderColor: '#fff' }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+  });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(renderCharts, 200);
+});
+</script>
+</body>
+</html>
